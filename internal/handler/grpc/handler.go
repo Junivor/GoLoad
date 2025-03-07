@@ -1,0 +1,99 @@
+package grpc
+
+import (
+	"GoLoad/internal/generated/grpc/go_load"
+	"GoLoad/internal/logic"
+	"context"
+	_ "github.com/golang-jwt/jwt/request"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+)
+
+const (
+	//nolint:gosec // This is just to specify the metadata name
+	AuthTokenMetadataName = "GOLOAD_AUTH"
+)
+
+type Handler struct {
+	go_load.UnimplementedGoLoadServiceServer
+	accountLogic      logic.Account
+	downloadTaskLogic logic.DownloadTask
+}
+
+func NewHandler(accountLogic logic.Account, downloadTaskLogic logic.DownloadTask) go_load.GoLoadServiceServer {
+	return &Handler{
+		accountLogic:      accountLogic,
+		downloadTaskLogic: downloadTaskLogic,
+	}
+}
+
+// CreateAccount implements go_load.GoLoadServiceServer.
+func (p *Handler) CreateAccount(ctx context.Context, request *go_load.CreateAccountRequest) (*go_load.CreateAccountResponse, error) {
+	output, err := p.accountLogic.CreateAccount(ctx, logic.CreateAccountParams{
+		AccountName: request.GetAccountName(),
+		Password:    request.GetPassword(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &go_load.CreateAccountResponse{AccountId: output.ID}, nil
+}
+
+// CreateDownloadTask implements go_load.GoLoadServiceServer.
+func (p *Handler) CreateDownloadTask(ctx context.Context, request *go_load.CreateDownloadTaskRequest) (*go_load.CreateDownloadTaskResponse, error) {
+	output, err := p.downloadTaskLogic.CreateDownloadTask(ctx, logic.CreateDownloadTaskParams{
+		Token:        request.GetToken(),
+		DownloadType: request.GetDownloadType(),
+		URL:          request.GetUrl(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &go_load.CreateDownloadTaskResponse{DownloadTask: &output.DownloadTask}, nil
+}
+
+// CreateSession implements go_load.GoLoadServiceServer.
+func (p *Handler) CreateSession(ctx context.Context, request *go_load.CreateSessionRequest) (*go_load.CreateSessionResponse, error) {
+	output, err := p.accountLogic.CreateSession(ctx, logic.CreateSessionParams{
+		AccountName: request.GetAccountName(),
+		Password:    request.GetPassword(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = grpc.SetHeader(ctx, metadata.Pairs(AuthTokenMetadataName, output.Token))
+	if err != nil {
+		return nil, err
+	}
+
+	return &go_load.CreateSessionResponse{
+		Account: output.Account,
+	}, nil
+}
+
+// DeleteDownloadTask implements go_load.GoLoadServiceServer.
+func (p *Handler) DeleteDownloadTask(context.Context, *go_load.DeleteDownloadTaskRequest) (*go_load.DeleteDownloadTaskResponse, error) {
+	panic("unimplemented")
+}
+
+// GetDownloadTaskFile implements go_load.GoLoadServiceServer.
+func (p *Handler) GetDownloadTaskFile(*go_load.GetDownloadTaskFileRequest, go_load.GoLoadService_GetDownloadTaskFileServer) error {
+	panic("unimplemented")
+}
+
+// GetDownloadTaskList implements go_load.GoLoadServiceServer.
+func (p *Handler) GetDownloadTaskList(context.Context, *go_load.GetDownloadTaskListRequest) (*go_load.GetDownloadTaskListResponse, error) {
+	panic("unimplemented")
+}
+
+// UpdateDownloadTask implements go_load.GoLoadServiceServer.
+func (p *Handler) UpdateDownloadTask(context.Context, *go_load.UpdateDownloadTaskRequest) (*go_load.UpdateDownloadTaskResponse, error) {
+	panic("unimplemented")
+}
+
+// mustEmbedUnimplementedGoLoadServiceServer implements go_load.GoLoadServiceServer.
+func (p *Handler) mustEmbedUnimplementedGoLoadServiceServer() {
+	panic("unimplemented")
+}
