@@ -58,6 +58,7 @@ func (a accountDataAccessor) CreateAccount(ctx context.Context, account Account)
 		}).
 		Executor().
 		ExecContext(ctx)
+
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to create account")
 		return 0, status.Error(codes.Internal, "failed to create account")

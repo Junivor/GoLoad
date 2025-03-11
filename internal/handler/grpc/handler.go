@@ -59,6 +59,7 @@ func (a Handler) CreateAccount(
 	ctx context.Context,
 	request *go_load.CreateAccountRequest,
 ) (*go_load.CreateAccountResponse, error) {
+	print("HITTTTTTTTTTTTTTTTTTTTTTT")
 	output, err := a.accountLogic.CreateAccount(ctx, logic.CreateAccountParams{
 		AccountName: request.GetAccountName(),
 		Password:    request.GetPassword(),
