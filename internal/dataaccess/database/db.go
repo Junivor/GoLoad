@@ -5,9 +5,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/goqu/v9"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
+
+	"github.com/doug-martin/goqu/v9"
+	"go.uber.org/zap"
+
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql" // Import MySQL goqu dialect
+	_ "github.com/go-sql-driver/mysql"               // Import MySQL driver
 )
 
 type Database interface {
@@ -34,11 +38,12 @@ type Database interface {
 	ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error
 	Select(cols ...interface{}) *goqu.SelectDataset
 	Trace(op string, sqlString string, args ...interface{})
+	Truncate(table ...interface{}) *goqu.TruncateDataset
 	Update(table interface{}) *goqu.UpdateDataset
 }
 
-func InitializeDB(databaseConfig configs.Database) (*sql.DB, func(), error) {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+func InitializeAndMigrateUpDB(databaseConfig configs.Database, logger *zap.Logger) (*sql.DB, func(), error) {
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
 		databaseConfig.Username,
 		databaseConfig.Password,
 		databaseConfig.Host,
@@ -47,14 +52,19 @@ func InitializeDB(databaseConfig configs.Database) (*sql.DB, func(), error) {
 	)
 
 	db, err := sql.Open("mysql", connectionString)
-
 	if err != nil {
-		log.Printf("Error connect to database: %w\n", err)
+		log.Printf("error connecting to the database: %+v\n", err)
 		return nil, nil, err
 	}
 
 	cleanup := func() {
 		db.Close()
+	}
+
+	migrator := NewMigrator(db, logger)
+	err = migrator.Up(context.Background())
+	if err != nil {
+		logger.With(zap.Error(err)).Error("failed to execute database up migration")
 	}
 
 	return db, cleanup, nil

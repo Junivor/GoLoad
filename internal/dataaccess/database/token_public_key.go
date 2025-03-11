@@ -52,6 +52,16 @@ func (a tokenPublicKeyDataAccessor) CreatePublicKey(
 	tokenPublicKey TokenPublicKey,
 ) (uint64, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger)
+	logger.Info("Inserting public key", zap.String("publicKey", tokenPublicKey.PublicKey))
+
+	sqlQuery, args, _ := a.database.
+		Insert(TabNameTokenPublicKeys).
+		Rows(goqu.Record{
+			ColNameTokenPublicKeysPublicKey: tokenPublicKey.PublicKey,
+		}).
+		ToSQL()
+	logger.Info("Generated SQL Query", zap.String("query", sqlQuery), zap.Any("args", args))
+
 	result, err := a.database.
 		Insert(TabNameTokenPublicKeys).
 		Rows(goqu.Record{
@@ -59,6 +69,7 @@ func (a tokenPublicKeyDataAccessor) CreatePublicKey(
 		}).
 		Executor().
 		ExecContext(ctx)
+
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to create token public key")
 		return 0, status.Error(codes.Internal, "failed to create token public key")
