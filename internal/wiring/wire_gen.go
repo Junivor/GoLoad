@@ -33,17 +33,17 @@ func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.Sta
 		return nil, nil, err
 	}
 	configsDatabase := config.Database
-	db, cleanup, err := database.InitializeDB(configsDatabase)
+	log := config.Log
+	logger, cleanup, err := utils.InitializeLogger(log)
 	if err != nil {
 		return nil, nil, err
 	}
-	goquDatabase := database.InitializeGoquDB(db)
-	log := config.Log
-	logger, cleanup2, err := utils.InitializeLogger(log)
+	db, cleanup2, err := database.InitializeAndMigrateUpDB(configsDatabase, logger)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	goquDatabase := database.InitializeGoquDB(db)
 	accountDataAccessor := database.NewAccountDataAccessor(goquDatabase, logger)
 	accountPasswordDataAccessor := database.NewAccountPasswordDataAccessor(goquDatabase, logger)
 	auth := config.Auth
