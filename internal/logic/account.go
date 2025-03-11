@@ -69,7 +69,7 @@ func (a account) databaseAccountToProtoAccount(account database.Account) *go_loa
 
 func (a account) isAccountAccountNameTaken(ctx context.Context, accountName string) (bool, error) {
 	if _, err := a.accountDataAccessor.GetAccountByAccountName(ctx, accountName); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if !errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
 		return false, err

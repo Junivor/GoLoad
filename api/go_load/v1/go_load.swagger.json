@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "go_load/v1/go_load.proto",
+    "title": "go_load/go_load.proto",
     "version": "version not set"
   },
   "tags": [
@@ -16,7 +16,7 @@
     "application/json"
   ],
   "paths": {
-    "/go_load.v1.GoLoadService/CreateAccount": {
+    "/go_load.GoLoadService/CreateAccount": {
       "post": {
         "operationId": "GoLoadService_CreateAccount",
         "responses": {
@@ -48,7 +48,7 @@
         ]
       }
     },
-    "/go_load.v1.GoLoadService/CreateDownloadTask": {
+    "/go_load.GoLoadService/CreateDownloadTask": {
       "post": {
         "operationId": "GoLoadService_CreateDownloadTask",
         "responses": {
@@ -80,7 +80,7 @@
         ]
       }
     },
-    "/go_load.v1.GoLoadService/CreateSession": {
+    "/go_load.GoLoadService/CreateSession": {
       "post": {
         "operationId": "GoLoadService_CreateSession",
         "responses": {
@@ -112,7 +112,7 @@
         ]
       }
     },
-    "/go_load.v1.GoLoadService/DeleteDownloadTask": {
+    "/go_load.GoLoadService/DeleteDownloadTask": {
       "post": {
         "operationId": "GoLoadService_DeleteDownloadTask",
         "responses": {
@@ -144,7 +144,7 @@
         ]
       }
     },
-    "/go_load.v1.GoLoadService/GetDownloadTaskFile": {
+    "/go_load.GoLoadService/GetDownloadTaskFile": {
       "post": {
         "operationId": "GoLoadService_GetDownloadTaskFile",
         "responses": {
@@ -185,7 +185,7 @@
         ]
       }
     },
-    "/go_load.v1.GoLoadService/GetDownloadTaskList": {
+    "/go_load.GoLoadService/GetDownloadTaskList": {
       "post": {
         "operationId": "GoLoadService_GetDownloadTaskList",
         "responses": {
@@ -217,7 +217,7 @@
         ]
       }
     },
-    "/go_load.v1.GoLoadService/UpdateDownloadTask": {
+    "/go_load.GoLoadService/UpdateDownloadTask": {
       "post": {
         "operationId": "GoLoadService_UpdateDownloadTask",
         "responses": {
