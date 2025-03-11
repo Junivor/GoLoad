@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package go_load.v1;
+
+import "buf/validate/validate.proto";
+
+service GoLoadService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse) {}
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {}
+  rpc CreateDownloadTask(CreateDownloadTaskRequest) returns (CreateDownloadTaskResponse) {}
+  rpc GetDownloadTaskList(GetDownloadTaskListRequest) returns (GetDownloadTaskListResponse) {}
+  rpc UpdateDownloadTask(UpdateDownloadTaskRequest) returns (UpdateDownloadTaskResponse) {}
+  rpc DeleteDownloadTask(DeleteDownloadTaskRequest) returns (DeleteDownloadTaskResponse) {}
+  rpc GetDownloadTaskFile(GetDownloadTaskFileRequest) returns (stream GetDownloadTaskFileResponse) {}
+}
+
+enum DownloadType {
+  DOWNLOAD_TYPE_UNSPECIFIED = 0;
+  DOWNLOAD_TYPE_HTTP = 1;
+}
+
+enum DownloadStatus {
+  DOWNLOAD_STATUS_UNSPECIFIED = 0;
+  DOWNLOAD_STATUS_PENDING = 1;
+  DOWNLOAD_STATUS_DOWNLOADING = 2;
+  DOWNLOAD_STATUS_FAILED = 3;
+  DOWNLOAD_STATUS_SUCCESS = 4;
+}
+
+message Account {
+  uint64 id = 1;
+  string account_name = 2;
+}
+
+message DownloadTask {
+  uint64 id = 1;
+  Account of_account = 2;
+  DownloadType download_type = 3;
+  string url = 4;
+  DownloadStatus download_status = 5;
+}
+
+message CreateAccountRequest {
+  string account_name = 1 [(buf.validate.field).string = {
+    pattern:   "^[a-zA-Z0-9]{6,32}$",
+  }];
+  string password = 2 [(buf.validate.field).string = {
+    pattern:   "^[a-zA-Z0-9]{6,32}$",
+  }];
+}
+
+message CreateAccountResponse {
+  uint64 account_id = 1;
+}
+
+message CreateSessionRequest {
+  string account_name = 1 [(buf.validate.field).string = {
+    pattern:   "^[a-zA-Z0-9]{6,32}$",
+  }];
+  string password = 2 [(buf.validate.field).string = {
+    pattern:   "^[a-zA-Z0-9]{6,32}$",
+  }];
+}
+
+message CreateSessionResponse {
+  Account account = 1;
+}
+
+message CreateDownloadTaskRequest {
+  DownloadType download_type = 1;
+  string url = 2 [(buf.validate.field).string = {
+    max_len: 2000
+  }];
+}
+
+message CreateDownloadTaskResponse {
+  DownloadTask download_task = 1;
+}
+
+message GetDownloadTaskListRequest {
+  uint64 offset = 1;
+  uint64 limit = 2 [(buf.validate.field).uint64 = {
+    lte: 100
+  }];
+}
+message GetDownloadTaskListResponse {
+  repeated DownloadTask download_task_list = 1;
+  uint64 total_download_task_count = 2;
+}
+
+message UpdateDownloadTaskRequest {
+  uint64 download_task_id = 1;
+  string url = 2 [(buf.validate.field).string = {
+    uri: true,
+  }];
+}
+message UpdateDownloadTaskResponse {
+  DownloadTask download_task = 1;
+}
+
+message DeleteDownloadTaskRequest {
+  uint64 download_task_id = 1;
+}
+
+message DeleteDownloadTaskResponse {}
+
+message GetDownloadTaskFileRequest {
+  uint64 download_task_id = 1;
+}
+message GetDownloadTaskFileResponse {
+  bytes data = 1;
+}

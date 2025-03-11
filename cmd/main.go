@@ -1,21 +1,58 @@
 package main
 
 import (
+	"GoLoad/internal/configs"
+	"GoLoad/internal/wiring"
 	"fmt"
+	"log"
+
+	"github.com/spf13/cobra"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
+var (
+	version    string
+	commitHash string
+)
+
+const (
+	flagConfigFilePath = "config-file-path"
+)
+
+func server() *cobra.Command {
+	command := &cobra.Command{
+		Use:  "standalone-server",
+		Long: "Start all components of GoLoad - gRPC + HTTP server, Kafka consumer, Cronjobs - as a single process",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			configFilePath, err := cmd.Flags().GetString(flagConfigFilePath)
+			if err != nil {
+				return err
+			}
+
+			app, cleanup, err := wiring.InitializeStandaloneServer(configs.ConfigFilePath(configFilePath))
+			if err != nil {
+				return err
+			}
+
+			defer cleanup()
+
+			return app.Start()
+		},
+	}
+
+	command.Flags().String(flagConfigFilePath, "", "If provided, will use the provided config file.")
+
+	return command
+}
 
 func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Println("Hello and welcome, %s!", s)
+	rootCommand := &cobra.Command{
+		Version: fmt.Sprintf("%s-%s", version, commitHash),
+	}
+	rootCommand.AddCommand(
+		server(),
+	)
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
+	if err := rootCommand.Execute(); err != nil {
+		log.Panic(err)
 	}
 }

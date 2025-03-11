@@ -1,7 +1,6 @@
 package producer
 
 import (
-	"GoLoad/internal/dataaccess/database"
 	"GoLoad/internal/utils"
 	"context"
 	"encoding/json"
@@ -15,7 +14,7 @@ const (
 )
 
 type DownloadTaskCreated struct {
-	DownloadTask database.DownloadTask
+	ID uint64 `json:"id"`
 }
 
 type DownloadTaskCreatedProducer interface {

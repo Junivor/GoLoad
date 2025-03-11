@@ -1,0 +1,39 @@
+database:
+  host: 127.0.0.1
+  port: 3306
+  username: root
+  password: example
+  database: goload
+cache:
+  type: "redis"
+  address: "127.0.0.1:6379"
+  username: ""
+  password: ""
+mq:
+  addresses:
+    - 127.0.0.1:9092
+  client_id: "goload"
+auth:
+  hash:
+    cost: 10
+  token:
+    expires_in: 24h
+    regenerate_token_before_expiry: 1h
+grpc:
+  address: "0.0.0.0:8080"
+  get_download_task_file:
+    response_buffer_size: 1kB
+cron:
+  execute_all_pending_download_task:
+    schedule: "@every 1m"
+    concurrency_limit: 8
+  update_downloading_and_failed_download_task_status_to_pending:
+    schedule: "@every 30m"
+http:
+  address: "0.0.0.0:8081"
+download:
+  mode: s3
+  bucket: downloaded-files
+  address: "127.0.0.1:9000"
+  username: "ROOTUSER"
+  password: "CHANGEME123"

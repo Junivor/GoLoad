@@ -7,13 +7,19 @@
 package wiring
 
 import (
+	"GoLoad/internal/app"
 	"GoLoad/internal/configs"
 	"GoLoad/internal/dataaccess"
 	"GoLoad/internal/dataaccess/cache"
 	"GoLoad/internal/dataaccess/database"
+	"GoLoad/internal/dataaccess/file"
+	"GoLoad/internal/dataaccess/mq/consumer"
 	"GoLoad/internal/dataaccess/mq/producer"
 	"GoLoad/internal/handler"
+	"GoLoad/internal/handler/consumers"
 	"GoLoad/internal/handler/grpc"
+	"GoLoad/internal/handler/http"
+	"GoLoad/internal/handler/jobs"
 	"GoLoad/internal/logic"
 	"GoLoad/internal/utils"
 	"github.com/google/wire"
@@ -21,8 +27,8 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeGRPCServer(path configs.ConfigFilePath) (grpc.Server, func(), error) {
-	config, err := configs.NewConfig(path)
+func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.StandaloneServer, func(), error) {
+	config, err := configs.NewConfig(configFilePath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -62,10 +68,36 @@ func InitializeGRPCServer(path configs.ConfigFilePath) (grpc.Server, func(), err
 		return nil, nil, err
 	}
 	downloadTaskCreatedProducer := producer.NewDownloadTaskCreatedProducer(producerClient, logger)
-	downloadTask := logic.NewDownloadTask(logger, goquDatabase, token, downloadTaskDataAccessor, downloadTaskCreatedProducer)
-	goLoadServiceServer := grpc.NewHandler(account, downloadTask)
+	download := config.Download
+	fileClient, err := file.NewS3Client(download, logger)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	cron := config.Cron
+	downloadTask := logic.NewDownloadTask(logger, goquDatabase, token, accountDataAccessor, downloadTaskDataAccessor, downloadTaskCreatedProducer, fileClient, cron)
+	configsGRPC := config.GRPC
+	goLoadServiceServer, err := grpc.NewHandler(account, downloadTask, configsGRPC)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
 	server := grpc.NewServer(goLoadServiceServer)
-	return server, func() {
+	httpServer := http.NewServer()
+	downloadTaskCreated := consumers.NewDownloadTaskCreated(logger, downloadTask)
+	consumerConsumer, err := consumer.NewConsumer(mq, logger)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	root := consumers.NewRoot(downloadTaskCreated, consumerConsumer, logger)
+	executeAllPendingDownloadTask := jobs.NewExecuteAllPendingDownloadTask(downloadTask)
+	updateDownloadingAndFailedDownloadTaskStatusToPending := jobs.NewUpdateDownloadingAndFailedDownloadTaskStatusToPending(downloadTask)
+	standaloneServer := app.NewStandaloneServer(server, httpServer, root, executeAllPendingDownloadTask, updateDownloadingAndFailedDownloadTaskStatusToPending, logger, cron)
+	return standaloneServer, func() {
 		cleanup2()
 		cleanup()
 	}, nil
@@ -73,4 +105,4 @@ func InitializeGRPCServer(path configs.ConfigFilePath) (grpc.Server, func(), err
 
 // wire.go:
 
-var WireSet = wire.NewSet(configs.WireSet, dataaccess.WireSet, utils.WireSet, logic.WireSet, handler.WireSet)
+var WireSet = wire.NewSet(configs.WireSet, utils.WireSet, dataaccess.WireSet, logic.WireSet, handler.WireSet, app.WireSet)
