@@ -86,7 +86,7 @@ func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.Sta
 	}
 	server := grpc.NewServer(goLoadServiceServer)
 	httpServer := http.NewServer()
-	downloadTaskCreated := consumers.NewDownloadTaskCreated(logger, downloadTask)
+	downloadTaskCreated := consumers.NewDownloadTaskCreated(downloadTask, logger)
 	consumerConsumer, err := consumer.NewConsumer(mq, logger)
 	if err != nil {
 		cleanup2()
