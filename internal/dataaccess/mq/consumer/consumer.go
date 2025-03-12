@@ -51,7 +51,7 @@ func NewConsumer(
 	}, nil
 }
 
-func (c consumer) RegisterHandler(queueName string, handlerFunc HandlerFunc) error {
+func (c *consumer) RegisterHandler(queueName string, handlerFunc HandlerFunc) error {
 	partitionConsumer, err := c.saramaConsumer.ConsumePartition(queueName, 0, sarama.OffsetOldest)
 	if err != nil {
 		return fmt.Errorf("Failed to create sarama partition consumers: %w", err)
@@ -69,7 +69,7 @@ func (c consumer) RegisterHandler(queueName string, handlerFunc HandlerFunc) err
 	return nil
 }
 
-func (c consumer) Start(_ context.Context) error {
+func (c *consumer) Start(_ context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 

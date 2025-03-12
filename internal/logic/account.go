@@ -149,6 +149,7 @@ func (a account) CreateSession(ctx context.Context, params CreateSessionParams) 
 		return CreateSessionOutput{}, err
 	}
 
+	//println("TOKEN: ", token)
 	return CreateSessionOutput{
 		Account: a.databaseAccountToProtoAccount(existingAccount),
 		Token:   token,

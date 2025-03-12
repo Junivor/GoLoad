@@ -1,0 +1,34 @@
+POST http://localhost:8081/go_load.GoLoadService/CreateAccount
+Accept: application/json
+Content-Type: application/json
+
+{
+  "accountName": "khoi123",
+  "password": "test123"
+}
+
+
+###CreateSession
+POST http://localhost:8081/go_load.GoLoadService/CreateSession
+Accept: application/json
+Content-Type: application/json
+Cookie: cookie.txt
+
+{
+  "accountName": "khoi123",
+  "password": "test123"
+}
+
+###CreateDownloadTask
+POST http://localhost:8081/go_load.GoLoadService/CreateDownloadTask
+Accept: application/json
+Content-Type: application/json
+Cookie: cookie.txt
+
+{
+  "downloadType": 1,
+  "url": "https://www.stu.edu.vn/"
+}
+
+
+

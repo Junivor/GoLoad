@@ -28,4 +28,4 @@ __debug_bin*
 mysql_data/
 
 # Downloaded file location in development
-downloads
+download

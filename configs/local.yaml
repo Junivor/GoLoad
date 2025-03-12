@@ -32,8 +32,8 @@ cron:
 http:
   address: "0.0.0.0:8081"
 download:
-  mode: s3
-  bucket: download-fles
+  mode: S3
+  bucket: downloaded-files
   address: "127.0.0.1:9000"
   username: ROOTUSER
   password: CHANGEME123

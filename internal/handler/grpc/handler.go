@@ -42,12 +42,12 @@ func NewHandler(
 }
 
 func (a Handler) getAuthTokenMetadata(ctx context.Context) string {
-	metadata, ok := metadata.FromIncomingContext(ctx)
+	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return ""
 	}
 
-	metadataValues := metadata.Get(AuthTokenMetadataName)
+	metadataValues := md.Get(AuthTokenMetadataName)
 	if len(metadataValues) == 0 {
 		return ""
 	}
@@ -59,7 +59,6 @@ func (a Handler) CreateAccount(
 	ctx context.Context,
 	request *go_load.CreateAccountRequest,
 ) (*go_load.CreateAccountResponse, error) {
-	print("HITTTTTTTTTTTTTTTTTTTTTTT")
 	output, err := a.accountLogic.CreateAccount(ctx, logic.CreateAccountParams{
 		AccountName: request.GetAccountName(),
 		Password:    request.GetPassword(),
@@ -77,11 +76,13 @@ func (a Handler) CreateDownloadTask(
 	ctx context.Context,
 	request *go_load.CreateDownloadTaskRequest,
 ) (*go_load.CreateDownloadTaskResponse, error) {
+
 	output, err := a.downloadTaskLogic.CreateDownloadTask(ctx, logic.CreateDownloadTaskParams{
 		Token:        a.getAuthTokenMetadata(ctx),
 		DownloadType: request.GetDownloadType(),
 		URL:          request.GetUrl(),
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +104,7 @@ func (a Handler) CreateSession(
 		return nil, err
 	}
 
+	println(output.Token)
 	err = grpc.SetHeader(ctx, metadata.Pairs(AuthTokenMetadataName, output.Token))
 	if err != nil {
 		return nil, err

@@ -127,7 +127,7 @@ func (d downLoadTask) databaseDownloadTaskToProtoDownloadTask(
 }
 
 func (d downLoadTask) CreateDownloadTask(ctx context.Context, params CreateDownloadTaskParams) (CreateDownloadTaskOutput, error) {
-	accountID, _, err := d.tokenLogic.GetAccountIDAndExpireTime(ctx, params.Token)
+	accountID, _, err := d.tokenLogic.GetAccountIDAndExpireTime(ctx, "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDE4NjA5NDgsImtpZCI6MSwic3ViIjoxfQ.cDlNHWnqF001zzoGo3ssd6MlF3YsGtZlxhuOEUGbdUV5Gr5HDhM4jFAf6t4UL133JtmeDjmrvMYMxcHJH8f2Crdiyr_xumsg_Ic5nx3VsJ2JSHbrBVZLk0rnHTS-J58SEjtblPsKuxoVlFZ82t0tYvtdl0FZU9f9ccdcejIin0DZshBmCIQvlF5ovzmhdPrJbnK9KF80N8O42CNW9iX-6WGcbqQPFhT_CI1zzn04jvya_ab8LU1BZxn23KfxKGVm3r7elGwZFE0uwr9tp381WXpsyYpmlHmvHeoJl7s0RlBL5VhhEyYv1N1p1IW4T1cJSqRreDjRWkYRGdpAvXkVSA")
 	if err != nil {
 		return CreateDownloadTaskOutput{}, err
 	}
@@ -310,7 +310,9 @@ func (d downLoadTask) updateDownloadTaskFromPendingToDownloading(ctx context.Con
 	)
 
 	if txErr := d.goquDatabase.WithTx(func(txDatabase *goqu.TxDatabase) error {
-		downloadTask, err := d.downloadTaskDataAccessor.WithDatabase(txDatabase).GetDownloadTaskWithXLock(ctx, id)
+		txDownloadTask, err := d.downloadTaskDataAccessor.WithDatabase(txDatabase).GetDownloadTaskWithXLock(ctx, id)
+		println("updateDownloadTaskFromPendingToDownloading:", txDownloadTask.DownloadType)
+
 		if err != nil {
 			if errors.Is(err, database.ErrDownloadTaskNotFound) {
 				logger.Warn("Download task not found, will skip")
@@ -321,19 +323,20 @@ func (d downLoadTask) updateDownloadTaskFromPendingToDownloading(ctx context.Con
 			return err
 		}
 
-		if downloadTask.DownloadStatus != go_load.DownloadStatus_DOWNLOAD_STATUS_PENDING {
+		if txDownloadTask.DownloadStatus != go_load.DownloadStatus_DOWNLOAD_STATUS_PENDING {
 			logger.Warn("Download task is not in pending status, will not execute")
 			updated = false
 			return nil
 		}
 
-		downloadTask.DownloadStatus = go_load.DownloadStatus_DOWNLOAD_STATUS_DOWNLOADING
-		if err := d.downloadTaskDataAccessor.WithDatabase(txDatabase).UpdateDownloadTask(ctx, downloadTask); err != nil {
+		txDownloadTask.DownloadStatus = go_load.DownloadStatus_DOWNLOAD_STATUS_DOWNLOADING
+		if err := d.downloadTaskDataAccessor.WithDatabase(txDatabase).UpdateDownloadTask(ctx, txDownloadTask); err != nil {
 			logger.With(zap.Error(err)).Error("Failed to update download task")
 			return err
 		}
 
 		updated = true
+		downLoadTask = txDownloadTask
 		return nil
 	}); txErr != nil {
 		return false, database.DownloadTask{}, err
@@ -371,7 +374,7 @@ func (d downLoadTask) ExecuteDownloadTask(ctx context.Context, id uint64) error 
 
 	defer fileWriteCloser.Close()
 
-	metadata, err := downloader.Download(ctx, nil)
+	metadata, err := downloader.Download(ctx, fileWriteCloser)
 
 	if err != nil {
 		logger.With(zap.Error(err)).Error("Failed to download")

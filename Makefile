@@ -68,11 +68,11 @@ clean:
 
 .PHONY: docker-compose-dev-up
 docker-compose-dev-up:
-	docker-compose -f deployments/docker-compose.dev.yml up -d
+	docker compose -f deployments/docker-compose.dev.yml up -d
 
 .PHONY: docker-compose-dev-down
 docker-compose-dev-down:
-	docker-compose -f deployments/docker-compose.dev.yml down
+	docker compose -f deployments/docker-compose.dev.yml down
 
 .PHONY: run-standalone-server
 run-standalone-server:
