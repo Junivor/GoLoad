@@ -12,7 +12,6 @@ Content-Type: application/json
 POST http://localhost:8081/go_load.GoLoadService/CreateSession
 Accept: application/json
 Content-Type: application/json
-Cookie: cookie.txt
 
 {
   "accountName": "khoi123",
@@ -30,5 +29,26 @@ Cookie: cookie.txt
   "url": "https://www.stu.edu.vn/"
 }
 
+###
+curl -X 'POST' \
+'localhost:8081/go_load.GoLoadService/CreateSession' \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/json' \
+    --cookie-jar cookie.txt \
+    -d '{
+"accountName": "khoi123",
+"password": "test123"
+}'
 
+
+###
+curl -X 'POST' \
+'http://localhost:8081/go_load.v1.GoLoadService/CreateDownloadTask' \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --cookie cookie.txt \
+  -d '{
+  "downloadType": 1,
+  "url": "https://example.com"
+}'
 

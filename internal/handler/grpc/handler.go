@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -42,12 +43,12 @@ func NewHandler(
 }
 
 func (a Handler) getAuthTokenMetadata(ctx context.Context) string {
-	md, ok := metadata.FromIncomingContext(ctx)
+	metadata, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return ""
 	}
 
-	metadataValues := md.Get(AuthTokenMetadataName)
+	metadataValues := metadata.Get(AuthTokenMetadataName)
 	if len(metadataValues) == 0 {
 		return ""
 	}
@@ -76,13 +77,11 @@ func (a Handler) CreateDownloadTask(
 	ctx context.Context,
 	request *go_load.CreateDownloadTaskRequest,
 ) (*go_load.CreateDownloadTaskResponse, error) {
-
 	output, err := a.downloadTaskLogic.CreateDownloadTask(ctx, logic.CreateDownloadTaskParams{
 		Token:        a.getAuthTokenMetadata(ctx),
 		DownloadType: request.GetDownloadType(),
 		URL:          request.GetUrl(),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +103,16 @@ func (a Handler) CreateSession(
 		return nil, err
 	}
 
-	println(output.Token)
-	err = grpc.SetHeader(ctx, metadata.Pairs(AuthTokenMetadataName, output.Token))
+	cookie := &http.Cookie{
+		Name:     "auth_token",
+		Value:    output.Token,
+		Path:     "/",
+		HttpOnly: true,
+	}
+
+	// Chuyển Set-Cookie vào metadata để REST Gateway sử dụng
+	md := metadata.Pairs("Set-Cookie", cookie.String())
+	err = grpc.SetHeader(ctx, md)
 	if err != nil {
 		return nil, err
 	}
