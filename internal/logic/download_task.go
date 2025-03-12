@@ -127,6 +127,7 @@ func (d downLoadTask) databaseDownloadTaskToProtoDownloadTask(
 }
 
 func (d downLoadTask) CreateDownloadTask(ctx context.Context, params CreateDownloadTaskParams) (CreateDownloadTaskOutput, error) {
+	println(params.Token)
 	accountID, _, err := d.tokenLogic.GetAccountIDAndExpireTime(ctx, params.Token)
 	if err != nil {
 		return CreateDownloadTaskOutput{}, err
