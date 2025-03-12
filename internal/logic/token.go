@@ -146,6 +146,7 @@ func (t token) getJWTPublicKey(ctx context.Context, id uint64) (*rsa.PublicKey, 
 
 	return jwt.ParseRSAPublicKeyFromPEM([]byte(tokenPublicKey.PublicKey))
 }
+
 func (t token) GetAccountIDAndExpireTime(ctx context.Context, tokenString string) (uint64, time.Time, error) {
 	logger := utils.LoggerWithContext(ctx, t.logger)
 
@@ -169,10 +170,13 @@ func (t token) GetAccountIDAndExpireTime(ctx context.Context, tokenString string
 
 		return t.getJWTPublicKey(ctx, uint64(tokenPublicKeyID))
 	})
+
+	println("HIT 1")
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to parse token")
 		return 0, time.Time{}, errInvalidToken
 	}
+	print("HIT 2")
 
 	if !parsedToken.Valid {
 		logger.Error("invalid token")
