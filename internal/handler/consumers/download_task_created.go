@@ -5,38 +5,35 @@ import (
 	"GoLoad/internal/logic"
 	"GoLoad/internal/utils"
 	"context"
-	"go.uber.org/zap"
-)
 
-const (
-	DownloadTaskCreatedMessageQueue = "download_task_created"
+	"go.uber.org/zap"
 )
 
 type DownloadTaskCreated interface {
 	Handle(ctx context.Context, event producer.DownloadTaskCreated) error
 }
 
-type downloadTaskCreatedHandler struct {
+type downloadTaskCreated struct {
 	downloadTaskLogic logic.DownloadTask
 	logger            *zap.Logger
 }
 
 func NewDownloadTaskCreated(
-	logger *zap.Logger,
 	downloadTaskLogic logic.DownloadTask,
+	logger *zap.Logger,
 ) DownloadTaskCreated {
-	return &downloadTaskCreatedHandler{
-		logger:            logger,
+	return &downloadTaskCreated{
 		downloadTaskLogic: downloadTaskLogic,
+		logger:            logger,
 	}
 }
 
-func (d downloadTaskCreatedHandler) Handle(ctx context.Context, event producer.DownloadTaskCreated) error {
+func (d downloadTaskCreated) Handle(ctx context.Context, event producer.DownloadTaskCreated) error {
 	logger := utils.LoggerWithContext(ctx, d.logger).With(zap.Any("event", event))
-	logger.Info("Download task created event received")
+	logger.Info("download task created event received")
 
 	if err := d.downloadTaskLogic.ExecuteDownloadTask(ctx, event.ID); err != nil {
-		logger.With(zap.Error(err)).Error("Failed to handle download task created event")
+		logger.With(zap.Error(err)).Error("failed to handle download task created event")
 		return err
 	}
 

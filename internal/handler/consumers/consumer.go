@@ -3,10 +3,9 @@ package consumers
 import (
 	"GoLoad/internal/dataaccess/mq/consumer"
 	"GoLoad/internal/dataaccess/mq/producer"
-	"GoLoad/internal/utils"
 	"context"
 	"encoding/json"
-	"fmt"
+
 	"go.uber.org/zap"
 )
 
@@ -21,20 +20,19 @@ type root struct {
 }
 
 func NewRoot(
-	downloadTaskCreated DownloadTaskCreated,
+	downloadTaskCreatedHandler DownloadTaskCreated,
 	mqConsumer consumer.Consumer,
 	logger *zap.Logger,
 ) Root {
 	return &root{
-		downloadTaskCreatedHandler: downloadTaskCreated,
+		downloadTaskCreatedHandler: downloadTaskCreatedHandler,
 		mqConsumer:                 mqConsumer,
 		logger:                     logger,
 	}
 }
 
 func (r root) Start(ctx context.Context) error {
-	logger := utils.LoggerWithContext(ctx, r.logger)
-	if err := r.mqConsumer.RegisterHandler(
+	r.mqConsumer.RegisterHandler(
 		producer.MessageQueueDownloadTaskCreated,
 		func(ctx context.Context, queueName string, payload []byte) error {
 			var event producer.DownloadTaskCreated
@@ -43,10 +41,8 @@ func (r root) Start(ctx context.Context) error {
 			}
 
 			return r.downloadTaskCreatedHandler.Handle(ctx, event)
-		}); err != nil {
-		logger.With(zap.Error(err)).Error("Failed to register message queue download")
-		return fmt.Errorf("Failed to download task created handler: %w", err)
-	}
+		},
+	)
 
 	return r.mqConsumer.Start(ctx)
 }

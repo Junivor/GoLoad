@@ -311,7 +311,6 @@ func (d downLoadTask) updateDownloadTaskFromPendingToDownloading(ctx context.Con
 
 	if txErr := d.goquDatabase.WithTx(func(txDatabase *goqu.TxDatabase) error {
 		txDownloadTask, err := d.downloadTaskDataAccessor.WithDatabase(txDatabase).GetDownloadTaskWithXLock(ctx, id)
-		println("updateDownloadTaskFromPendingToDownloading:", txDownloadTask.DownloadType)
 
 		if err != nil {
 			if errors.Is(err, database.ErrDownloadTaskNotFound) {
