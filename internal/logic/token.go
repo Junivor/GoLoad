@@ -128,6 +128,7 @@ func (t token) getJWTPublicKey(ctx context.Context, id uint64) (*rsa.PublicKey, 
 	}
 
 	logger.With(zap.Error(err)).Warn("failed to get cached public key bytes, will fail back to database")
+	print("PASS 4")
 
 	tokenPublicKey, err := t.tokenPublicKeyDataAccessor.GetPublicKey(ctx, id)
 	if err != nil {
@@ -138,11 +139,14 @@ func (t token) getJWTPublicKey(ctx context.Context, id uint64) (*rsa.PublicKey, 
 		logger.With(zap.Error(err)).Error("cannot get token's public key from database")
 		return nil, err
 	}
+	print("PASS 5")
 
 	err = t.tokenPublicKeyCache.Set(ctx, id, tokenPublicKey.PublicKey)
 	if err != nil {
 		logger.With(zap.Error(err)).Warn("failed to set public key bytes into cache")
 	}
+
+	print("PASS 6")
 
 	return jwt.ParseRSAPublicKeyFromPEM([]byte(tokenPublicKey.PublicKey))
 }
@@ -155,28 +159,29 @@ func (t token) GetAccountIDAndExpireTime(ctx context.Context, tokenString string
 			logger.Error("unexpected signing method")
 			return nil, errUnexpectedSigningMethod
 		}
+		print("PASS 1")
 
 		claims, ok := parsedToken.Claims.(jwt.MapClaims)
 		if !ok {
 			logger.Error("cannot get token's claims")
 			return nil, errCannotGetTokensClaims
 		}
+		print("PASS 2")
 
 		tokenPublicKeyID, ok := claims["kid"].(float64)
 		if !ok {
 			logger.Error("cannot get token's kid claim")
 			return nil, errCannotGetTokensKidClaim
 		}
+		print("PASS 3")
 
 		return t.getJWTPublicKey(ctx, uint64(tokenPublicKeyID))
 	})
 
-	println("HIT 1")
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to parse token")
 		return 0, time.Time{}, errInvalidToken
 	}
-	print("HIT 2")
 
 	if !parsedToken.Valid {
 		logger.Error("invalid token")
