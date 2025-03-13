@@ -2,10 +2,11 @@ package logic
 
 import (
 	"GoLoad/internal/configs"
-	"GoLoad/internal/dataaccess/database"
 	"GoLoad/internal/dataaccess/file"
 	"GoLoad/internal/dataaccess/mq/producer"
 	"GoLoad/internal/generated/grpc/go_load"
+	"GoLoad/internal/models"
+	"GoLoad/internal/repo"
 	"GoLoad/internal/utils"
 	"context"
 	"errors"
@@ -81,8 +82,8 @@ type downLoadTask struct {
 	logger                      *zap.Logger
 	goquDatabase                *goqu.Database
 	tokenLogic                  Token
-	accountDataAccessor         database.AccountDataAccessor
-	downloadTaskDataAccessor    database.DownloadTaskDataAccessor
+	accountDataAccessor         repo.AccountDataAccessor
+	downloadTaskDataAccessor    repo.DownloadTaskDataAccessor
 	downloadTaskCreatedProducer producer.DownloadTaskCreatedProducer
 	fileClient                  file.Client
 	cronConfig                  configs.Cron
@@ -92,8 +93,8 @@ func NewDownloadTask(
 	logger *zap.Logger,
 	goquDatabase *goqu.Database,
 	tokenLogic Token,
-	accountDataAccessor database.AccountDataAccessor,
-	downloadTaskDataAccessor database.DownloadTaskDataAccessor,
+	accountDataAccessor repo.AccountDataAccessor,
+	downloadTaskDataAccessor repo.DownloadTaskDataAccessor,
 	downloadTaskCreatedProducer producer.DownloadTaskCreatedProducer,
 	fileClient file.Client,
 	cronConfig configs.Cron,
@@ -111,8 +112,8 @@ func NewDownloadTask(
 }
 
 func (d downLoadTask) databaseDownloadTaskToProtoDownloadTask(
-	downloadTask database.DownloadTask,
-	account database.Account,
+	downloadTask models.DownloadTask,
+	account models.Account,
 ) *go_load.DownloadTask {
 	return &go_load.DownloadTask{
 		Id: downloadTask.ID,
@@ -138,12 +139,12 @@ func (d downLoadTask) CreateDownloadTask(ctx context.Context, params CreateDownl
 		return CreateDownloadTaskOutput{}, err
 	}
 
-	downloadTask := database.DownloadTask{
+	downloadTask := models.DownloadTask{
 		OfAccountID:    accountID,
 		DownloadType:   params.DownloadType,
 		URL:            params.URL,
 		DownloadStatus: go_load.DownloadStatus_DOWNLOAD_STATUS_PENDING,
-		Metadata: database.JSON{
+		Metadata: models.JSON{
 			Data: make(map[string]any),
 		},
 	}
@@ -201,7 +202,7 @@ func (d downLoadTask) GetDownloadTaskList(
 
 	return GetDownloadTaskListOutput{
 		TotalDownloadTaskCount: totalDownloadTaskCount,
-		DownloadTaskList: lo.Map(downloadTaskList, func(item database.DownloadTask, _ int) *go_load.DownloadTask {
+		DownloadTaskList: lo.Map(downloadTaskList, func(item models.DownloadTask, _ int) *go_load.DownloadTask {
 			return d.databaseDownloadTaskToProtoDownloadTask(item, account)
 		}),
 	}, nil
@@ -299,14 +300,14 @@ func (d downLoadTask) ExecuteAllPendingDownloadTask(ctx context.Context) error {
 
 func (d downLoadTask) updateDownloadTaskFromPendingToDownloading(ctx context.Context, id uint64) (
 	bool,
-	database.DownloadTask,
+	models.DownloadTask,
 	error,
 ) {
 
 	var (
 		logger       = utils.LoggerWithContext(ctx, d.logger).With(zap.Uint64("id", id))
 		updated      = false
-		downLoadTask database.DownloadTask
+		downLoadTask models.DownloadTask
 		err          error
 	)
 
@@ -314,7 +315,7 @@ func (d downLoadTask) updateDownloadTaskFromPendingToDownloading(ctx context.Con
 		txDownloadTask, err := d.downloadTaskDataAccessor.WithDatabase(txDatabase).GetDownloadTaskWithXLock(ctx, id)
 
 		if err != nil {
-			if errors.Is(err, database.ErrDownloadTaskNotFound) {
+			if errors.Is(err, models.ErrDownloadTaskNotFound) {
 				logger.Warn("Download task not found, will skip")
 				return nil
 			}
@@ -339,7 +340,7 @@ func (d downLoadTask) updateDownloadTaskFromPendingToDownloading(ctx context.Con
 		downLoadTask = txDownloadTask
 		return nil
 	}); txErr != nil {
-		return false, database.DownloadTask{}, err
+		return false, models.DownloadTask{}, err
 	}
 
 	return updated, downLoadTask, nil
@@ -383,7 +384,7 @@ func (d downLoadTask) ExecuteDownloadTask(ctx context.Context, id uint64) error 
 
 	metadata["file-name"] = fileName
 	downloadTask.DownloadStatus = go_load.DownloadStatus_DOWNLOAD_STATUS_SUCCESS
-	downloadTask.Metadata = database.JSON{Data: metadata}
+	downloadTask.Metadata = models.JSON{Data: metadata}
 
 	if err := d.downloadTaskDataAccessor.UpdateDownloadTask(ctx, downloadTask); err != nil {
 		logger.With(zap.Error(err)).Error("Failed to update download task status to success")

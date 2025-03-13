@@ -21,6 +21,7 @@ import (
 	"GoLoad/internal/handler/http"
 	"GoLoad/internal/handler/jobs"
 	"GoLoad/internal/logic"
+	"GoLoad/internal/repo"
 	"GoLoad/internal/utils"
 	"github.com/google/wire"
 )
@@ -44,14 +45,14 @@ func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.Sta
 		return nil, nil, err
 	}
 	goquDatabase := database.InitializeGoquDB(db)
-	accountDataAccessor := database.NewAccountDataAccessor(goquDatabase, logger)
-	accountPasswordDataAccessor := database.NewAccountPasswordDataAccessor(goquDatabase, logger)
+	accountDataAccessor := repo.NewAccountDataAccessor(goquDatabase, logger)
+	accountPasswordDataAccessor := repo.NewAccountPasswordDataAccessor(goquDatabase, logger)
 	auth := config.Auth
 	hash := logic.NewHash(auth)
 	configsCache := config.Cache
 	client := cache.NewRedisClient(configsCache, logger)
 	tokenPublicKey := cache.NewTokenPublicKey(client, logger)
-	tokenPublicKeyDataAccessor := database.NewTokenPublicKeyDataAccessor(goquDatabase, logger)
+	tokenPublicKeyDataAccessor := repo.NewTokenPublicKeyDataAccessor(goquDatabase, logger)
 	token, err := logic.NewToken(accountDataAccessor, tokenPublicKey, tokenPublicKeyDataAccessor, auth, logger)
 	if err != nil {
 		cleanup2()
@@ -59,7 +60,7 @@ func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.Sta
 		return nil, nil, err
 	}
 	account := logic.NewAccount(goquDatabase, accountDataAccessor, accountPasswordDataAccessor, hash, token)
-	downloadTaskDataAccessor := database.NewDownloadTaskDataAccessor(goquDatabase, logger)
+	downloadTaskDataAccessor := repo.NewDownloadTaskDataAccessor(goquDatabase, logger)
 	mq := config.MQ
 	producerClient, err := producer.NewClient(logger, mq)
 	if err != nil {
@@ -105,4 +106,4 @@ func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.Sta
 
 // wire.go:
 
-var WireSet = wire.NewSet(configs.WireSet, utils.WireSet, dataaccess.WireSet, logic.WireSet, handler.WireSet, app.WireSet)
+var WireSet = wire.NewSet(configs.WireSet, utils.WireSet, dataaccess.WireSet, logic.WireSet, handler.WireSet, app.WireSet, repo.WireSet)

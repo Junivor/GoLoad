@@ -11,6 +11,7 @@ import (
 	"GoLoad/internal/dataaccess"
 	"GoLoad/internal/handler"
 	"GoLoad/internal/logic"
+	"GoLoad/internal/repo"
 	"GoLoad/internal/utils"
 	"github.com/google/wire"
 )
@@ -22,6 +23,7 @@ var WireSet = wire.NewSet(
 	logic.WireSet,
 	handler.WireSet,
 	app.WireSet,
+	repo.WireSet,
 )
 
 func InitializeStandaloneServer(configFilePath configs.ConfigFilePath) (*app.StandaloneServer, func(), error) {

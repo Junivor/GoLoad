@@ -1,29 +1,25 @@
-package database
+package repo
 
 import (
+	"GoLoad/internal/dataaccess/database"
+	"GoLoad/internal/errors"
 	"GoLoad/internal/models"
 	"GoLoad/internal/utils"
 	"context"
 
 	"github.com/doug-martin/goqu/v9"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-)
-
-var (
-	ErrAccountNotFound = status.Error(codes.NotFound, "account not found")
 )
 
 type AccountDataAccessor interface {
 	CreateAccount(ctx context.Context, account models.Account) (uint64, error)
 	GetAccountByID(ctx context.Context, id uint64) (models.Account, error)
 	GetAccountByAccountName(ctx context.Context, accountName string) (models.Account, error)
-	WithDatabase(database Database) AccountDataAccessor
+	WithDatabase(database database.Database) AccountDataAccessor
 }
 
 type accountDataAccessor struct {
-	database Database
+	database database.Database
 	logger   *zap.Logger
 }
 
@@ -50,13 +46,13 @@ func (a accountDataAccessor) CreateAccount(ctx context.Context, account models.A
 
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to create account")
-		return 0, status.Error(codes.Internal, "failed to create account")
+		return 0, errors.ErrInternal("failed to create account")
 	}
 
 	lastInsertedID, err := result.LastInsertId()
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get last inserted id")
-		return 0, status.Error(codes.Internal, "failed to get last inserted id")
+		return 0, errors.ErrInternal("failed to get last inserted id")
 	}
 
 	return uint64(lastInsertedID), nil
@@ -72,12 +68,12 @@ func (a accountDataAccessor) GetAccountByID(ctx context.Context, id uint64) (mod
 		ScanStructContext(ctx, &account)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get account by id")
-		return models.Account{}, status.Error(codes.Internal, "failed to get account by id")
+		return models.Account{}, errors.ErrNotFound("account")
 	}
 
 	if !found {
 		logger.Warn("cannot find account by id")
-		return models.Account{}, ErrAccountNotFound
+		return models.Account{}, errors.ErrNotFound("account")
 	}
 
 	return account, nil
@@ -93,18 +89,18 @@ func (a accountDataAccessor) GetAccountByAccountName(ctx context.Context, accoun
 		ScanStructContext(ctx, &account)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get account by name")
-		return models.Account{}, status.Error(codes.Internal, "failed to get account by name")
+		return models.Account{}, errors.ErrInternal("failed to get account by name")
 	}
 
 	if !found {
 		logger.Warn("cannot find account by name")
-		return models.Account{}, ErrAccountNotFound
+		return models.Account{}, errors.ErrNotFound("account")
 	}
 
 	return account, nil
 }
 
-func (a accountDataAccessor) WithDatabase(database Database) AccountDataAccessor {
+func (a accountDataAccessor) WithDatabase(database database.Database) AccountDataAccessor {
 	return &accountDataAccessor{
 		database: database,
 		logger:   a.logger,

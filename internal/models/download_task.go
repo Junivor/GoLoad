@@ -22,10 +22,6 @@ const (
 	ColNameDownloadTaskMetadata       = "metadata"
 )
 
-type JSON struct {
-	Data any
-}
-
 type DownloadTask struct {
 	ID             uint64                 `db:"id" goqu:"skipinsert,skipupdate"`
 	OfAccountID    uint64                 `db:"of_account_id" goqu:"skipupdate"`

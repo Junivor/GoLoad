@@ -8,8 +8,4 @@ var WireSet = wire.NewSet(
 	InitializeAndMigrateUpDB,
 	InitializeGoquDB,
 	NewMigrator,
-	NewAccountDataAccessor,
-	NewAccountPasswordDataAccessor,
-	NewDownloadTaskDataAccessor,
-	NewTokenPublicKeyDataAccessor,
 )

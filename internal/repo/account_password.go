@@ -1,6 +1,8 @@
-package database
+package repo
 
 import (
+	"GoLoad/internal/dataaccess/database"
+	"GoLoad/internal/errors"
 	"GoLoad/internal/models"
 	"GoLoad/internal/utils"
 	"context"
@@ -8,19 +10,17 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type AccountPasswordDataAccessor interface {
 	CreateAccountPassword(ctx context.Context, accountPassword models.AccountPassword) error
 	GetAccountPassword(ctx context.Context, ofAccountID uint64) (models.AccountPassword, error)
 	UpdateAccountPassword(ctx context.Context, accountPassword models.AccountPassword) error
-	WithDatabase(database Database) AccountPasswordDataAccessor
+	WithDatabase(database database.Database) AccountPasswordDataAccessor
 }
 
 type accountPasswordDataAccessor struct {
-	database Database
+	database database.Database
 	logger   *zap.Logger
 }
 
@@ -46,7 +46,7 @@ func (a accountPasswordDataAccessor) CreateAccountPassword(ctx context.Context, 
 		ExecContext(ctx)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to create account password")
-		return status.Error(codes.Internal, "failed to create account password")
+		return errors.ErrInternal("failed to create account password")
 	}
 
 	return nil
@@ -64,7 +64,7 @@ func (a accountPasswordDataAccessor) GetAccountPassword(
 		ScanStructContext(ctx, &accountPassword)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get account password by id")
-		return models.AccountPassword{}, status.Error(codes.Internal, "failed to get account password by id")
+		return models.AccountPassword{}, errors.ErrInternal("failed to get account password by id")
 	}
 
 	if !found {
@@ -85,13 +85,13 @@ func (a accountPasswordDataAccessor) UpdateAccountPassword(ctx context.Context, 
 		ExecContext(ctx)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to update account password")
-		return status.Error(codes.Internal, "failed to update account password")
+		return errors.ErrInternal("failed to update account password")
 	}
 
 	return nil
 }
 
-func (a accountPasswordDataAccessor) WithDatabase(database Database) AccountPasswordDataAccessor {
+func (a accountPasswordDataAccessor) WithDatabase(database database.Database) AccountPasswordDataAccessor {
 	return &accountPasswordDataAccessor{
 		database: database,
 		logger:   a.logger,

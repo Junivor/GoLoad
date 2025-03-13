@@ -4,6 +4,8 @@ import (
 	"GoLoad/internal/configs"
 	"GoLoad/internal/dataaccess/cache"
 	"GoLoad/internal/dataaccess/database"
+	"GoLoad/internal/models"
+	"GoLoad/internal/repo"
 	"GoLoad/internal/utils"
 	"context"
 	"crypto/rand"
@@ -51,9 +53,9 @@ func generateRSAKeyPair(bits int) (*rsa.PrivateKey, error) {
 }
 
 type token struct {
-	accountDataAccessor        database.AccountDataAccessor
+	accountDataAccessor        repo.AccountDataAccessor
 	tokenPublicKeyCache        cache.TokenPublicKey
-	tokenPublicKeyDataAccessor database.TokenPublicKeyDataAccessor
+	tokenPublicKeyDataAccessor repo.TokenPublicKeyDataAccessor
 	expiresIn                  time.Duration
 	privateKey                 *rsa.PrivateKey
 	tokenPublicKeyID           uint64
@@ -74,9 +76,9 @@ func pemEncodePublicKey(pubKey *rsa.PublicKey) ([]byte, error) {
 }
 
 func NewToken(
-	accountDataAccessor database.AccountDataAccessor,
+	accountDataAccessor repo.AccountDataAccessor,
 	tokenPublicKeyCache cache.TokenPublicKey,
-	tokenPublicKeyDataAccessor database.TokenPublicKeyDataAccessor,
+	tokenPublicKeyDataAccessor repo.TokenPublicKeyDataAccessor,
 	authConfig configs.Auth,
 	logger *zap.Logger,
 ) (Token, error) {
@@ -100,7 +102,7 @@ func NewToken(
 
 	tokenPublicKeyID, err := tokenPublicKeyDataAccessor.CreatePublicKey(
 		context.Background(),
-		database.TokenPublicKey{PublicKey: string(publicKeyBytes)},
+		models.TokenPublicKey{PublicKey: string(publicKeyBytes)},
 	)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to create public key entry in database")

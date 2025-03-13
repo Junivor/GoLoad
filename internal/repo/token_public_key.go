@@ -1,39 +1,25 @@
-package database
+package repo
 
 import (
+	"GoLoad/internal/dataaccess/database"
+	"GoLoad/internal/errors"
+	"GoLoad/internal/models"
 	"GoLoad/internal/utils"
 	"context"
 	"database/sql"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/doug-martin/goqu/v9"
+	"go.uber.org/zap"
 )
-
-var (
-	TabNameTokenPublicKeys = goqu.T("token_public_keys")
-)
-
-const (
-	ColNameTokenPublicKeysID        = "id"
-	ColNameTokenPublicKeysPublicKey = "public_key"
-)
-
-type TokenPublicKey struct {
-	ID        uint64 `db:"id" goqu:"skipinsert,skipupdate"`
-	PublicKey string `db:"public_key"`
-}
 
 type TokenPublicKeyDataAccessor interface {
-	CreatePublicKey(ctx context.Context, tokenPublicKey TokenPublicKey) (uint64, error)
-	GetPublicKey(ctx context.Context, id uint64) (TokenPublicKey, error)
-	WithDatabase(database Database) TokenPublicKeyDataAccessor
+	CreatePublicKey(ctx context.Context, tokenPublicKey models.TokenPublicKey) (uint64, error)
+	GetPublicKey(ctx context.Context, id uint64) (models.TokenPublicKey, error)
+	WithDatabase(database database.Database) TokenPublicKeyDataAccessor
 }
 
 type tokenPublicKeyDataAccessor struct {
-	database Database
+	database database.Database
 	logger   *zap.Logger
 }
 
@@ -49,67 +35,67 @@ func NewTokenPublicKeyDataAccessor(
 
 func (a tokenPublicKeyDataAccessor) CreatePublicKey(
 	ctx context.Context,
-	tokenPublicKey TokenPublicKey,
+	tokenPublicKey models.TokenPublicKey,
 ) (uint64, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger)
 	logger.Info("Inserting public key", zap.String("publicKey", tokenPublicKey.PublicKey))
 
 	sqlQuery, args, _ := a.database.
-		Insert(TabNameTokenPublicKeys).
+		Insert(models.TabNameTokenPublicKeys).
 		Rows(goqu.Record{
-			ColNameTokenPublicKeysPublicKey: tokenPublicKey.PublicKey,
+			models.ColNameTokenPublicKeysPublicKey: tokenPublicKey.PublicKey,
 		}).
 		ToSQL()
 	logger.Info("Generated SQL Query", zap.String("query", sqlQuery), zap.Any("args", args))
 
 	result, err := a.database.
-		Insert(TabNameTokenPublicKeys).
+		Insert(models.TabNameTokenPublicKeys).
 		Rows(goqu.Record{
-			ColNameTokenPublicKeysPublicKey: tokenPublicKey.PublicKey,
+			models.ColNameTokenPublicKeysPublicKey: tokenPublicKey.PublicKey,
 		}).
 		Executor().
 		ExecContext(ctx)
 
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to create token public key")
-		return 0, status.Error(codes.Internal, "failed to create token public key")
+		return 0, errors.ErrInternal("failed to create token public key")
 	}
 
 	lastInsertedID, err := result.LastInsertId()
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get last inserted id")
-		return 0, status.Error(codes.Internal, "failed to get last inserted id")
+		return 0, errors.ErrInternal("failed to get last inserted id")
 	}
 
 	return uint64(lastInsertedID), nil
 }
 
-func (a tokenPublicKeyDataAccessor) GetPublicKey(ctx context.Context, id uint64) (TokenPublicKey, error) {
+func (a tokenPublicKeyDataAccessor) GetPublicKey(ctx context.Context, id uint64) (models.TokenPublicKey, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger).With(zap.Uint64("id", id))
 
-	tokenPublicKey := TokenPublicKey{}
+	tokenPublicKey := models.TokenPublicKey{}
 	found, err := a.database.
 		Select().
-		From(TabNameTokenPublicKeys).
+		From(models.TabNameTokenPublicKeys).
 		Where(goqu.Ex{
-			ColNameTokenPublicKeysID: id,
+			models.ColNameTokenPublicKeysID: id,
 		}).
 		Executor().
 		ScanStructContext(ctx, &tokenPublicKey)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get public key")
-		return TokenPublicKey{}, status.Error(codes.Internal, "failed to get public key")
+		return models.TokenPublicKey{}, errors.ErrInternal("failed to get public key")
 	}
 
 	if !found {
 		logger.Warn("public key not found")
-		return TokenPublicKey{}, sql.ErrNoRows
+		return models.TokenPublicKey{}, sql.ErrNoRows
 	}
 
 	return tokenPublicKey, nil
 }
 
-func (a tokenPublicKeyDataAccessor) WithDatabase(database Database) TokenPublicKeyDataAccessor {
+func (a tokenPublicKeyDataAccessor) WithDatabase(database database.Database) TokenPublicKeyDataAccessor {
 	a.database = database
 	return a
 }

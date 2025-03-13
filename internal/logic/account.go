@@ -1,8 +1,9 @@
 package logic
 
 import (
-	"GoLoad/internal/dataaccess/database"
 	"GoLoad/internal/generated/grpc/go_load"
+	"GoLoad/internal/models"
+	"GoLoad/internal/repo"
 	"context"
 	"database/sql"
 	"errors"
@@ -38,16 +39,16 @@ type Account interface {
 
 type account struct {
 	goquDatabase                *goqu.Database
-	accountDataAccessor         database.AccountDataAccessor
-	accountDataPasswordAccessor database.AccountPasswordDataAccessor
+	accountDataAccessor         repo.AccountDataAccessor
+	accountDataPasswordAccessor repo.AccountPasswordDataAccessor
 	hashLogic                   Hash
 	tokenLogic                  Token
 }
 
 func NewAccount(
 	goquDatabase *goqu.Database,
-	accountDataAccessor database.AccountDataAccessor,
-	accountPasswordAccessor database.AccountPasswordDataAccessor,
+	accountDataAccessor repo.AccountDataAccessor,
+	accountPasswordAccessor repo.AccountPasswordDataAccessor,
 	hash Hash,
 	tokenLogic Token,
 ) Account {
@@ -60,7 +61,7 @@ func NewAccount(
 	}
 }
 
-func (a account) databaseAccountToProtoAccount(account database.Account) *go_load.Account {
+func (a account) databaseAccountToProtoAccount(account models.Account) *go_load.Account {
 	return &go_load.Account{
 		Id:          account.ID,
 		AccountName: account.AccountName,
@@ -90,7 +91,7 @@ func (a account) CreateAccount(ctx context.Context, params CreateAccountParams) 
 			return errors.New("AccountName is already taken")
 		}
 
-		accountID, err := a.accountDataAccessor.WithDatabase(txDatabase).CreateAccount(ctx, database.Account{
+		accountID, err := a.accountDataAccessor.WithDatabase(txDatabase).CreateAccount(ctx, models.Account{
 			AccountName: params.AccountName,
 		})
 
@@ -104,7 +105,7 @@ func (a account) CreateAccount(ctx context.Context, params CreateAccountParams) 
 			return err
 		}
 
-		if err := a.accountDataPasswordAccessor.WithDatabase(txDatabase).CreateAccountPassword(ctx, database.AccountPassword{
+		if err := a.accountDataPasswordAccessor.WithDatabase(txDatabase).CreateAccountPassword(ctx, models.AccountPassword{
 			OfAccountID: accountID,
 			Hash:        hashedPassword,
 		}); err != nil {
