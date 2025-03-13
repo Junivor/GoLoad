@@ -1,6 +1,7 @@
 package database
 
 import (
+	"GoLoad/internal/models"
 	"GoLoad/internal/utils"
 	"context"
 
@@ -11,25 +12,13 @@ import (
 )
 
 var (
-	TabNameAccounts = goqu.T("accounts")
-
 	ErrAccountNotFound = status.Error(codes.NotFound, "account not found")
 )
 
-const (
-	ColNameAccountsID          = "id"
-	ColNameAccountsAccountName = "account_name"
-)
-
-type Account struct {
-	ID          uint64 `db:"id" goqu:"skipinsert,skipupdate"`
-	AccountName string `db:"account_name"`
-}
-
 type AccountDataAccessor interface {
-	CreateAccount(ctx context.Context, account Account) (uint64, error)
-	GetAccountByID(ctx context.Context, id uint64) (Account, error)
-	GetAccountByAccountName(ctx context.Context, accountName string) (Account, error)
+	CreateAccount(ctx context.Context, account models.Account) (uint64, error)
+	GetAccountByID(ctx context.Context, id uint64) (models.Account, error)
+	GetAccountByAccountName(ctx context.Context, accountName string) (models.Account, error)
 	WithDatabase(database Database) AccountDataAccessor
 }
 
@@ -48,13 +37,13 @@ func NewAccountDataAccessor(
 	}
 }
 
-func (a accountDataAccessor) CreateAccount(ctx context.Context, account Account) (uint64, error) {
+func (a accountDataAccessor) CreateAccount(ctx context.Context, account models.Account) (uint64, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger).With(zap.Any("account", account))
 
 	result, err := a.database.
-		Insert(TabNameAccounts).
+		Insert(models.TabNameAccounts).
 		Rows(goqu.Record{
-			ColNameAccountsAccountName: account.AccountName,
+			models.ColNameAccountsAccountName: account.AccountName,
 		}).
 		Executor().
 		ExecContext(ctx)
@@ -73,43 +62,43 @@ func (a accountDataAccessor) CreateAccount(ctx context.Context, account Account)
 	return uint64(lastInsertedID), nil
 }
 
-func (a accountDataAccessor) GetAccountByID(ctx context.Context, id uint64) (Account, error) {
+func (a accountDataAccessor) GetAccountByID(ctx context.Context, id uint64) (models.Account, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger)
 
-	account := Account{}
+	account := models.Account{}
 	found, err := a.database.
-		From(TabNameAccounts).
-		Where(goqu.C(ColNameAccountsID).Eq(id)).
+		From(models.TabNameAccounts).
+		Where(goqu.C(models.ColNameAccountsID).Eq(id)).
 		ScanStructContext(ctx, &account)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get account by id")
-		return Account{}, status.Error(codes.Internal, "failed to get account by id")
+		return models.Account{}, status.Error(codes.Internal, "failed to get account by id")
 	}
 
 	if !found {
 		logger.Warn("cannot find account by id")
-		return Account{}, ErrAccountNotFound
+		return models.Account{}, ErrAccountNotFound
 	}
 
 	return account, nil
 }
 
-func (a accountDataAccessor) GetAccountByAccountName(ctx context.Context, accountName string) (Account, error) {
+func (a accountDataAccessor) GetAccountByAccountName(ctx context.Context, accountName string) (models.Account, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger).With(zap.String("account_name", accountName))
 
-	account := Account{}
+	account := models.Account{}
 	found, err := a.database.
-		From(TabNameAccounts).
-		Where(goqu.C(ColNameAccountsAccountName).Eq(accountName)).
+		From(models.TabNameAccounts).
+		Where(goqu.C(models.ColNameAccountsAccountName).Eq(accountName)).
 		ScanStructContext(ctx, &account)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get account by name")
-		return Account{}, status.Error(codes.Internal, "failed to get account by name")
+		return models.Account{}, status.Error(codes.Internal, "failed to get account by name")
 	}
 
 	if !found {
 		logger.Warn("cannot find account by name")
-		return Account{}, ErrAccountNotFound
+		return models.Account{}, ErrAccountNotFound
 	}
 
 	return account, nil

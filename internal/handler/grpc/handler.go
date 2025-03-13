@@ -105,6 +105,7 @@ func (a Handler) CreateSession(
 	println(output.Token)
 	return &go_load.CreateSessionResponse{
 		Account: output.Account,
+		Token:   output.Token,
 	}, nil
 }
 

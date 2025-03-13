@@ -1,6 +1,7 @@
 package database
 
 import (
+	"GoLoad/internal/models"
 	"GoLoad/internal/utils"
 	"context"
 	"database/sql"
@@ -11,24 +12,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	TabNameAccountPasswords = goqu.T("account_passwords")
-)
-
-const (
-	ColNameAccountPasswordsOfAccountID = "of_account_id"
-	ColNameAccountPasswordsHash        = "hash"
-)
-
-type AccountPassword struct {
-	OfAccountID uint64 `db:"of_account_id" goqu:"skipupdate"`
-	Hash        string `db:"hash"`
-}
-
 type AccountPasswordDataAccessor interface {
-	CreateAccountPassword(ctx context.Context, accountPassword AccountPassword) error
-	GetAccountPassword(ctx context.Context, ofAccountID uint64) (AccountPassword, error)
-	UpdateAccountPassword(ctx context.Context, accountPassword AccountPassword) error
+	CreateAccountPassword(ctx context.Context, accountPassword models.AccountPassword) error
+	GetAccountPassword(ctx context.Context, ofAccountID uint64) (models.AccountPassword, error)
+	UpdateAccountPassword(ctx context.Context, accountPassword models.AccountPassword) error
 	WithDatabase(database Database) AccountPasswordDataAccessor
 }
 
@@ -47,13 +34,13 @@ func NewAccountPasswordDataAccessor(
 	}
 }
 
-func (a accountPasswordDataAccessor) CreateAccountPassword(ctx context.Context, accountPassword AccountPassword) error {
+func (a accountPasswordDataAccessor) CreateAccountPassword(ctx context.Context, accountPassword models.AccountPassword) error {
 	logger := utils.LoggerWithContext(ctx, a.logger)
 	_, err := a.database.
-		Insert(TabNameAccountPasswords).
+		Insert(models.TabNameAccountPasswords).
 		Rows(goqu.Record{
-			ColNameAccountPasswordsOfAccountID: accountPassword.OfAccountID,
-			ColNameAccountPasswordsHash:        accountPassword.Hash,
+			models.ColNameAccountPasswordsOfAccountID: accountPassword.OfAccountID,
+			models.ColNameAccountPasswordsHash:        accountPassword.Hash,
 		}).
 		Executor().
 		ExecContext(ctx)
@@ -68,32 +55,32 @@ func (a accountPasswordDataAccessor) CreateAccountPassword(ctx context.Context, 
 func (a accountPasswordDataAccessor) GetAccountPassword(
 	ctx context.Context,
 	ofAccountID uint64,
-) (AccountPassword, error) {
+) (models.AccountPassword, error) {
 	logger := utils.LoggerWithContext(ctx, a.logger).With(zap.Uint64("of_account_id", ofAccountID))
-	accountPassword := AccountPassword{}
+	accountPassword := models.AccountPassword{}
 	found, err := a.database.
-		From(TabNameAccountPasswords).
-		Where(goqu.Ex{ColNameAccountPasswordsOfAccountID: ofAccountID}).
+		From(models.TabNameAccountPasswords).
+		Where(goqu.Ex{models.ColNameAccountPasswordsOfAccountID: ofAccountID}).
 		ScanStructContext(ctx, &accountPassword)
 	if err != nil {
 		logger.With(zap.Error(err)).Error("failed to get account password by id")
-		return AccountPassword{}, status.Error(codes.Internal, "failed to get account password by id")
+		return models.AccountPassword{}, status.Error(codes.Internal, "failed to get account password by id")
 	}
 
 	if !found {
 		logger.Warn("cannot find account by id")
-		return AccountPassword{}, sql.ErrNoRows
+		return models.AccountPassword{}, sql.ErrNoRows
 	}
 
 	return accountPassword, nil
 }
 
-func (a accountPasswordDataAccessor) UpdateAccountPassword(ctx context.Context, accountPassword AccountPassword) error {
+func (a accountPasswordDataAccessor) UpdateAccountPassword(ctx context.Context, accountPassword models.AccountPassword) error {
 	logger := utils.LoggerWithContext(ctx, a.logger)
 	_, err := a.database.
-		Update(TabNameAccountPasswords).
-		Set(goqu.Record{ColNameAccountPasswordsHash: accountPassword.Hash}).
-		Where(goqu.Ex{ColNameAccountPasswordsOfAccountID: accountPassword.OfAccountID}).
+		Update(models.TabNameAccountPasswords).
+		Set(goqu.Record{models.ColNameAccountPasswordsHash: accountPassword.Hash}).
+		Where(goqu.Ex{models.ColNameAccountPasswordsOfAccountID: accountPassword.OfAccountID}).
 		Executor().
 		ExecContext(ctx)
 	if err != nil {
