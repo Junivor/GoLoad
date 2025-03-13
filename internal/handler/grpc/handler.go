@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"GoLoad/internal/configs"
-	"GoLoad/internal/generated/grpc/go_load"
+	go_load "GoLoad/internal/generated/go_load/v1"
 	"GoLoad/internal/logic"
 	"context"
 	"errors"
@@ -105,7 +105,6 @@ func (a Handler) CreateSession(
 	println(output.Token)
 	return &go_load.CreateSessionResponse{
 		Account: output.Account,
-		Token:   output.Token,
 	}, nil
 }
 

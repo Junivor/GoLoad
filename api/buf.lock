@@ -6,3 +6,8 @@ deps:
     repository: protovalidate
     commit: 0409229c37804d6187ee0806eb4eebce
     digest: shake256:9939db9aafaf6ae5f3b6e68cd9358d647fe1ff07ac221e2d533dd8c199973db8fb86dbc8e1bb291812309a3c43cf4ec11df06b3bf1c2a0f2f14dfecef0a0f8ec
+  - remote: buf.build
+    owner: googleapis
+    repository: googleapis
+    commit: 751cbe31638d43a9bfb6162cd2352e67
+    digest: shake256:87f55470d9d124e2d1dedfe0231221f4ed7efbc55bc5268917c678e2d9b9c41573a7f9a557f6d8539044524d9fc5ca8fbb7db05eb81379d168285d76b57eb8a4
